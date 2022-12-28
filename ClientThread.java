@@ -2,14 +2,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-// ClientHandler class
 class ClientThread extends Thread {
 
   static Socket clientSocket;
-  BufferedReader br;
-  BufferedWriter bw;
-  InputStream is;
-  OutputStream os;
+  static InputStream is;
+  static OutputStream os;
+  static BufferedReader br;
+  static BufferedWriter bw;
 
   private static ArrayList<ClientThread> clientList;
   private int id;
@@ -21,10 +20,10 @@ class ClientThread extends Thread {
     clientList = clients;
     this.isLoggedIn = true;
     try {
-      this.is = s.getInputStream();
-      this.os = s.getOutputStream();
-      this.br = new BufferedReader(new InputStreamReader(is));
-      this.bw = new BufferedWriter(new OutputStreamWriter(os));
+      is = s.getInputStream();
+      os = s.getOutputStream();
+      br = new BufferedReader(new InputStreamReader(is));
+      bw = new BufferedWriter(new OutputStreamWriter(os));
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -33,40 +32,57 @@ class ClientThread extends Thread {
   public void run() {
     String received;
     try {
-      this.bw.write("Welcome to the chat room!");
-      this.bw.newLine();
-      this.bw.flush();
-    } catch (IOException e) {
-      ServerHelper.printError(e.getMessage());
-    }
-    while (true) {
-      try {
-        received = br.readLine();
-        if (received.equalsIgnoreCase("quit")) {
-          close();
-          break;
-        } else {
-          ServerHelper.printInfo("Client #" + id + ": " + received);
-          for (ClientThread client : clientList) {
-            if (client.id != this.id) {
-              client.bw.write("Client #" + id + ": " + received);
-              client.bw.newLine();
-              client.bw.flush();
-            }
+      String name;
+      while (true) {
+        synchronized (this) {
+          bw.write("Please enter your name :");
+          bw.newLine();
+          bw.flush();
+
+          name = ((String) br.readLine()).trim();
+          ServerHelper.printInfo("Client #" + id + "'s name is: " + name);
+
+          if ((name.indexOf('@') == -1) || (name.indexOf('!') == -1)) {
+            break;
+          } else {
+            bw.write("The name should not contain '@' or '!'");
+            bw.newLine();
+            bw.flush();
           }
         }
+      }
+
+      while (true) {
+        try {
+          received = br.readLine();
+          if (received.equalsIgnoreCase("quit")) {
+            close();
+            break;
+          } else {
+            ServerHelper.printInfo("Client #" + id + ": " + received);
+            for (ClientThread client : clientList) {
+              if (client.id != this.id) {
+                client.bw.write("Client #" + id + ": " + received);
+                client.bw.newLine();
+                client.bw.flush();
+              }
+            }
+          }
+        } catch (IOException e) {
+          ServerHelper.printError(e.getMessage());
+          close();
+          break;
+        }
+      }
+
+      try {
+        // closing resources
+        this.br.close();
+        this.bw.close();
       } catch (IOException e) {
         ServerHelper.printError(e.getMessage());
-        close();
-        break;
       }
-    }
-
-    try {
-      // closing resources
-      this.br.close();
-      this.bw.close();
-    } catch (IOException e) {
+    } catch (Exception e) {
       ServerHelper.printError(e.getMessage());
     }
   }

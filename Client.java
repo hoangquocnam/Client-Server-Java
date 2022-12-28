@@ -8,6 +8,7 @@ public class Client implements Runnable {
   static OutputStream os;
   static BufferedReader br;
   static BufferedWriter bw;
+  private static BufferedReader inputLine = null;
   private static boolean isClosed = false;
 
   public static void main(String arg[]) {
@@ -19,28 +20,30 @@ public class Client implements Runnable {
           "No Server found. Please ensure that the Server program is running and try again."
         );
       }
-      InputStream is = clientSocket.getInputStream();
-      OutputStream os = clientSocket.getOutputStream();
-      BufferedReader br = new BufferedReader(new InputStreamReader(is));
-      BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
+      is = clientSocket.getInputStream();
+      os = clientSocket.getOutputStream();
+      br = new BufferedReader(new InputStreamReader(is));
+      bw = new BufferedWriter(new OutputStreamWriter(os));
+      inputLine = new BufferedReader(new InputStreamReader(System.in));
 
       String sentMessage = "";
-      String receivedMessage;
 
-      System.out.println("Talking to Server");
-
-      do {
-        DataInputStream din = new DataInputStream(System.in);
-        sentMessage = din.readLine();
-        bw.write(sentMessage);
-        bw.newLine();
-        bw.flush();
-
-        if (sentMessage.equalsIgnoreCase("quit")) break; else {
-          receivedMessage = br.readLine();
-          System.out.println("Received : " + receivedMessage);
+      try {
+        // create a new thread to receive messages from the server
+        Thread t = new Thread(new Client());
+        t.start();
+        while (!isClosed) {
+          // read the message to send from the console
+          sentMessage = inputLine.readLine();
+          // send the message to the server
+          bw.write(sentMessage);
+          bw.newLine();
+          bw.flush();
         }
-      } while (true);
+
+      } catch (Exception e) {
+        System.out.println("Error in sending message");
+      }
 
       bw.close();
       br.close();
@@ -51,13 +54,19 @@ public class Client implements Runnable {
   }
 
   public void run() {
+    // create a new thread to receive messages from the server
+    String receivedMessage = "";
     try {
-      while (!isClosed) {
-        String receivedMessage = br.readLine();
+      while (true) {
+        receivedMessage = br.readLine();
+        if (receivedMessage == null) {
+          break;
+        }
         System.out.println("Received : " + receivedMessage);
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       System.out.println("Error in receiving message");
     }
+
   }
 }

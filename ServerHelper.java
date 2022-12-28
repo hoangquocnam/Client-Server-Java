@@ -9,7 +9,7 @@ public class ServerHelper {
   public static int port = 3200;
 
   static void print(String s, LogType type) {
-    String message = "> Server: ";
+    String message = "";
     switch (type) {
       case INFO:
         message += "[INFO]";

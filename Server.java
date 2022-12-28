@@ -31,9 +31,6 @@ public class Server {
         );
         clientList.add(client);
         client.start();
-        ServerHelper.printInfo(
-          "Client " + clientSocket.getPort() + " connected!"
-        );
         COUNTER_CLIENT++;
       } catch (Exception e) {
         ServerHelper.printError(e.getMessage());

@@ -59,10 +59,10 @@ public class Client implements Runnable {
     try {
       while (true) {
         receivedMessage = br.readLine();
+        System.out.println(receivedMessage);
         if (receivedMessage == null) {
           break;
         }
-        System.out.println("Received : " + receivedMessage);
       }
     } catch (Exception e) {
       System.out.println("Error in receiving message");

@@ -8,11 +8,12 @@ class ClientThread extends Thread {
   static InputStream is;
   static OutputStream os;
   static BufferedReader br;
-  static BufferedWriter bw;
+  BufferedWriter bw;
 
   private static ArrayList<ClientThread> clientList;
   private int id;
-  boolean isLoggedIn;
+  boolean isLoggedIn = false;
+  String name = null;
 
   public ClientThread(Socket s, int id, ArrayList<ClientThread> clients) {
     this.id = id;
@@ -29,56 +30,78 @@ class ClientThread extends Thread {
     }
   }
 
+  public void send(String message) {
+    try {
+      bw.write(message);
+      bw.newLine();
+      bw.flush();
+    } catch (IOException e) {
+      ServerHelper.printError(
+        "Error in sending message to client" + id + " " + name
+      );
+    }
+  }
+
+  public void sendAll(String message) {
+    try {
+      for (ClientThread client : clientList) {
+        if (client.id != this.id) {
+          client.send(message);
+        }
+      }
+    } catch (Exception e) {
+      ServerHelper.printError("Error in sending message to all clients");
+    }
+  }
+
+  private boolean isValidName(String name) {
+    boolean isFormatValid = name.indexOf('@') == -1 && name.indexOf('!') == -1;
+    return isFormatValid;
+  }
+
   public void run() {
     String received;
     try {
-      String name;
       while (true) {
         synchronized (this) {
-          bw.write("Please enter your name :");
-          bw.newLine();
-          bw.flush();
-
-          name = ((String) br.readLine()).trim();
-          ServerHelper.printInfo("Client #" + id + "'s name is: " + name);
-
-          if ((name.indexOf('@') == -1) || (name.indexOf('!') == -1)) {
+          send("> Please enter your name :");
+          received = br.readLine();
+          if (isValidName(received)) {
+            name = "@" + received;
+            send("> Welcome " + name + "!");
+            ServerHelper.printInfo(
+              "Client #" + id + " -> " + name + " has joined!"
+            );
+            sendAll(name + " has joined!");
             break;
           } else {
-            bw.write("The name should not contain '@' or '!'");
-            bw.newLine();
-            bw.flush();
+            send("> Invalid name. Please try again.");
           }
         }
       }
 
       while (true) {
-        try {
-          received = br.readLine();
-          if (received.equalsIgnoreCase("quit")) {
+        synchronized (this) {
+          try {
+            received = br.readLine();
+            if (received.equalsIgnoreCase("quit")) {
+              close();
+              break;
+            } else {
+              ServerHelper.printInfo(name + ": " + received);
+              sendAll(name + ": " + received);
+            }
+          } catch (IOException e) {
+            ServerHelper.printError(e.getMessage());
             close();
             break;
-          } else {
-            ServerHelper.printInfo("Client #" + id + ": " + received);
-            for (ClientThread client : clientList) {
-              if (client.id != this.id) {
-                client.bw.write("Client #" + id + ": " + received);
-                client.bw.newLine();
-                client.bw.flush();
-              }
-            }
           }
-        } catch (IOException e) {
-          ServerHelper.printError(e.getMessage());
-          close();
-          break;
         }
       }
 
       try {
-        // closing resources
-        this.br.close();
-        this.bw.close();
+        br.close();
+        bw.close();
       } catch (IOException e) {
         ServerHelper.printError(e.getMessage());
       }

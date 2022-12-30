@@ -32,7 +32,7 @@ public class Client implements Runnable {
         // create a new thread to receive messages from the server
         Thread t = new Thread(new Client());
         t.start();
-        while (!isClosed) {
+        while (true) {
           // read the message to send from the console
           sentMessage = inputLine.readLine();
           // send the message to the server

@@ -15,21 +15,11 @@ class ClientThread extends Thread {
   public int _id;
   public int _port;
 
-  private ArrayList<ClientThread> _clientThreadList;
-  private static ArrayList<Folder> folders;
-
   boolean isLoggedIn = false;
   String name = null;
 
-  public ClientThread(
-    Socket s,
-    int id,
-    ArrayList<ClientThread> serverClients,
-    ArrayList<Folder> serverFolders
-  ) {
+  public ClientThread(Socket s, int id) {
     _clientSocket = s;
-    _clientThreadList = serverClients;
-    folders = serverFolders;
     this._id = id;
     _port = s.getPort();
     this.isLoggedIn = true;
@@ -53,41 +43,7 @@ class ClientThread extends Thread {
     }
   }
 
-  public void handleReceivedMessage(String received) {
-    switch (received) {
-      case ":exit":
-        close();
-        break;
-      case ":list":
-        for (ClientThread clientThread : _clientThreadList) {
-          send(clientThread.name);
-        }
-        break;
-      case ":list-files":
-        for (Folder folder : folders) {
-          send(folder.name);
-          for (File file : folder.files) {
-            send(file.name);
-          }
-        }
-        break;
-      case ":create-folder":
-        send("Enter folder name:");
-        try {
-          String folderName = _br.readLine();
-          if (createFolder(folderName)) {
-            send("Folder created successfully!");
-          } else {
-            send("Folder creation failed!");
-          }
-        } catch (IOException e) {
-          ServerHelper.printError(e.getMessage());
-        }
-        break;
-      default:
-        break;
-    }
-  }
+  public void handleReceivedMessage(String received) {}
 
   public void run() {
     String received;
@@ -163,11 +119,5 @@ class ClientThread extends Thread {
       ServerHelper.printError(e.getMessage());
       return false;
     }
-  }
-
-  boolean createFolder(String folderName) {
-    Folder folder = new Folder(_id, folderName);
-    ServerStateManage.addFolder(folder);
-    return true;
   }
 }

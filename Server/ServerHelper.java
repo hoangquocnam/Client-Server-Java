@@ -2,37 +2,6 @@ package Server;
 
 import java.util.*;
 
-class File {
-
-  String name;
-  int id;
-  int clientId;
-  int folderId;
-  String content;
-
-  public File(int id, int clientId, int folderId, String name, String content) {
-    this.id = id;
-    this.clientId = clientId;
-    this.folderId = folderId;
-    this.name = name;
-    this.content = content;
-  }
-}
-
-class Folder {
-
-  String name;
-  int id;
-  int clientId;
-  ArrayList<File> files = new ArrayList<>();
-
-  public Folder(int clientId, String name) {
-    this.clientId = clientId;
-    this.name = name;
-    this.id = ServerStateManage.getClientFolders(clientId).size();
-  }
-}
-
 public class ServerHelper {
 
   public enum LogType {
@@ -42,9 +11,6 @@ public class ServerHelper {
   }
 
   public static int port = 3200;
-  private static String CLIENT_DATABASE = "client_database.txt";
-  private static String FOLDER_DATABASE = "folder_database.txt";
-  private static String FILE_DATABASE = "file_database.txt";
 
   static void print(String s, LogType type) {
     String message = "";
@@ -77,8 +43,17 @@ public class ServerHelper {
     print(s, LogType.WARNING);
   }
 
-  static boolean isValidName(String name) {
-    boolean isFormatValid = name.indexOf('@') == -1 && name.indexOf('!') == -1;
+  static String[] TABLE_HEADERS = new String[] {
+    "Time",
+    "Monitoring directory",
+    "Action",
+    "Name Client",
+    "Description",
+  };
+
+  public static boolean isValidName(String received) {
+    boolean isFormatValid =
+      received.indexOf('@') == -1 && received.indexOf('!') == -1;
     return isFormatValid;
   }
 }

@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.*;
 
-public class Client implements Runnable {
+public class Main implements Runnable {
 
   static Socket clientSocket;
   static InputStream is;
@@ -30,17 +30,14 @@ public class Client implements Runnable {
 
       try {
         // create a new thread to receive messages from the server
-        Thread t = new Thread(new Client());
+        Thread t = new Thread(new Main());
         t.start();
         while (true) {
-          // read the message to send from the console
           sentMessage = inputLine.readLine();
-          // send the message to the server
           bw.write(sentMessage);
           bw.newLine();
           bw.flush();
         }
-
       } catch (Exception e) {
         System.out.println("Error in sending message");
       }
@@ -67,6 +64,5 @@ public class Client implements Runnable {
     } catch (Exception e) {
       System.out.println("Error in receiving message");
     }
-
   }
 }

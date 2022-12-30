@@ -1,228 +1,95 @@
 package Server;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.*;
-import java.util.TreeMap;
 import javax.swing.*;
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.event.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 
-public class UIServer extends JPanel {
+public class UIServer {
 
-  static ArrayList<ClientThread> _clientThreadList = new ArrayList<>();
-  static ClientThread _selectedClient;
-  static Folder _selectedFolder;
+  public static JFrame window;
+  public static JList<String> user;
+  public static DefaultTableModel jobsModel;
+  public static JTable table;
 
-  static JPanel LEFT_PANEL;
-  static JPanel RIGHT_PANEL;
+  public JButton btnDisconnect, btnSearch, btnRemoveClient;
+  public JTextField message, jtf;
+  public JLabel ipLabel;
+  public JLabel portLabel;
 
-  // Left : client list
-  JLabel labelClientCounter;
-  DefaultTableModel modelClient = new DefaultTableModel();
-  JTable tableClient = new JTable();
+  public UIServer(int port) {
+    // openSocket();
+    window = new JFrame("Monitoring system");
+    window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    window.setLayout(null);
+    window.setBounds(200, 200, 1200, 480);
+    window.setResizable(false);
 
-  // Right: folder list of selected client
-  JPanel controlPanel = new JPanel();
+    // port
+    JLabel portText = new JLabel("Port:");
+    portText.setBounds(20, 8, 60, 30);
+    window.add(portText);
 
-  // Right - top: folder list
-  JPanel panelFolder = new JPanel();
-  JButton btnBack = new JButton("<");
-  JTable tableFolder = new JTable();
-  DefaultTableModel modelFolder = new DefaultTableModel();
-  JButton btnCreateFolder = new JButton("Create");
-  JButton btnDeleteFolder = new JButton("Delete");
-  JButton btnRenameFolder = new JButton("Rename");
-  JButton btnSaveFolder = new JButton("Save");
+    portLabel = new JLabel(String.valueOf(port));
+    portLabel.setFont(
+      portLabel
+        .getFont()
+        .deriveFont(portLabel.getFont().getStyle() | java.awt.Font.BOLD)
+    );
+    portLabel.setBounds(50, 8, 70, 30);
+    window.add(portLabel);
 
-  // Right - bottom: file list of selected folder
-  JPanel panelFile = new JPanel();
-  JTable tableFile = new JTable();
-  DefaultTableModel modelFile = new DefaultTableModel();
+    // disconnect
+    btnDisconnect = new JButton("Stop");
+    btnDisconnect.setBounds(150, 10, 100, 30);
+    window.add(btnDisconnect);
 
-  // Center: Filed editor of selected file
+    // log button
+    btnRemoveClient = new JButton("Remove client");
+    btnRemoveClient.setBounds(200, 70, 200, 30);
+    btnRemoveClient.setEnabled(false);
+    window.add(btnRemoveClient);
 
-  void addEvents() {
-    tableClient
-      .getSelectionModel()
-      .addListSelectionListener(
-        new ListSelectionListener() {
-          public void valueChanged(ListSelectionEvent event) {
-            if (tableClient.getSelectedRow() > -1) {
-              int selectedRow = tableClient.getSelectedRow();
-              int selectedClientId = Integer.parseInt(
-                tableClient.getValueAt(selectedRow, 0).toString()
-              );
-              for (int i = 0; i < _clientThreadList.size(); i++) {
-                ClientThread client = _clientThreadList.get(i);
-                if (client.getClientId() == selectedClientId) {
-                  _selectedClient = client;
-                  break;
-                }
-              }
-              ArrayList<Folder> clientFolders = ServerStateManage.getClientFolders(
-                _selectedClient.getClientId()
-              );
-              folderListTable(clientFolders);
-            }
-          }
+    // client list
+    JLabel label_text = new JLabel("List client");
+    label_text.setBounds(20, 80, 100, 30);
+    window.add(label_text);
+
+    // scroll pane
+    user = new JList<String>();
+    JScrollPane paneUser = new JScrollPane(user);
+    paneUser.setBounds(10, 110, 130, 320);
+
+    window.add(paneUser);
+    message = new JTextField();
+    message.setBounds(0, 0, 0, 0);
+    window.add(message);
+
+    jobsModel =
+      new DefaultTableModel(ServerHelper.TABLE_HEADERS, 0) {
+        public boolean isCellEditable(int row, int column) {
+          return false;
         }
-      );
-    // tableFolder
-    //   .getSelectionModel()
-    //   .addListSelectionListener(
-    //     new ListSelectionListener() {
-    //       public void valueChanged(ListSelectionEvent event) {
-    //         if (tableFolder.getSelectedRow() > -1) {
-    //           int selectedRow = tableFolder.getSelectedRow();
-    //           int selectedFolderId = Integer.parseInt(
-    //             tableFolder.getValueAt(selectedRow, 0).toString()
-    //           );
-    //           _selectedFolder = ServerStateManage.getFolder(selectedFolderId);
-    //           ArrayList<File> folderFiles = _selectedFolder.getFiles();
-    //           fileListTable(folderFiles);
-    //         }
-    //       }
-    //     }
-    //   );
-  }
+      };
 
-  void clientListTable() {
-    modelClient = (DefaultTableModel) tableClient.getModel();
-    modelClient.setColumnCount(0);
-    modelClient.addColumn("Client Id");
-    modelClient.addColumn("Port");
-    modelClient.addColumn("Status");
-    for (int i = 0; i < _clientThreadList.size(); i++) {
-      ClientThread client = _clientThreadList.get(i);
-      modelClient.addRow(
-        new Object[] {
-          client.getClientId(),
-          client.getClientPort(),
-          client.getClientStatus(),
-        }
-      );
-    }
-  }
-
-  void folderListTable(ArrayList<Folder> folders) {
-    modelFolder = (DefaultTableModel) tableFolder.getModel();
-    modelFolder.setColumnCount(0);
-    modelFolder.addColumn("Client Id");
-    modelFolder.addColumn("Folder Id");
-    modelFolder.addColumn("Name");
-    for (int i = 0; i < folders.size(); i++) {
-      Folder folder = folders.get(i);
-      modelFolder.addRow(
-        new Object[] { folder.clientId, folder.id, folder.name }
-      );
-    }
-  }
-
-  void prepareLeftPanel() {
-    LEFT_PANEL = new JPanel();
-    LEFT_PANEL.setLayout(new BoxLayout(LEFT_PANEL, BoxLayout.Y_AXIS));
-
-    labelClientCounter = new JLabel("Client: " + _clientThreadList.size());
-
-    tableClient.setModel(new DefaultTableModel());
-    tableClient.setFillsViewportHeight(true);
-    JScrollPane scrollPane = new JScrollPane(
-      tableClient,
-      JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-      JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+    table = new JTable();
+    table.setModel(jobsModel);
+    table.setAutoCreateRowSorter(true);
+    final TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(
+      jobsModel
     );
-    scrollPane.setPreferredSize(new Dimension(300, 50));
-    clientListTable();
+    table.setRowSorter(sorter);
+    table.setBounds(145, 110, 1030, 320);
 
-    LEFT_PANEL.add(labelClientCounter);
-    LEFT_PANEL.add(scrollPane);
-
-    LEFT_PANEL.setBorder(
-      new CompoundBorder(
-        new TitledBorder("Client"),
-        new EmptyBorder(new Insets(5, 5, 5, 5))
-      )
-    );
-  }
-
-  void prepareFolderUI() {
-    folderListTable(new ArrayList<Folder>());
-    panelFolder.setLayout(new BoxLayout(panelFolder, BoxLayout.Y_AXIS));
-    tableFolder.setFillsViewportHeight(true);
-    JScrollPane scrollPane = new JScrollPane(
-      tableFolder,
-      JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-      JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
-    );
-    panelFolder.add(scrollPane);
-    panelFolder.setBorder(
-      new CompoundBorder(
-        new TitledBorder("Folder"),
-        new EmptyBorder(new Insets(5, 5, 5, 5))
-      )
-    );
-  }
-
-  void prepareRightPanel() {
-    RIGHT_PANEL = new JPanel();
-    RIGHT_PANEL.setLayout(new BoxLayout(RIGHT_PANEL, BoxLayout.Y_AXIS));
-    prepareFolderUI();
-
-    controlPanel.add(btnBack);
-    JPanel ButtonContainer = new JPanel(new FlowLayout());
-    ButtonContainer.add(btnCreateFolder);
-    ButtonContainer.add(btnSaveFolder);
-    ButtonContainer.add(btnRenameFolder);
-    ButtonContainer.add(btnDeleteFolder);
-    controlPanel.add(ButtonContainer);
-    tableFolder.setModel(new DefaultTableModel());
-
-    RIGHT_PANEL.add(controlPanel);
-    RIGHT_PANEL.add(panelFolder);
-  }
-
-  public UIServer(ArrayList<ClientThread> clientThreadList) {
-    synchronized (this) {
-      _clientThreadList = clientThreadList;
-      setLayout(new BorderLayout());
-      prepareLeftPanel();
-      prepareRightPanel();
-
-      add(LEFT_PANEL, BorderLayout.WEST);
-      add(RIGHT_PANEL, BorderLayout.EAST);
-      addEvents();
-    }
-  }
-
-  public void updateClientList() {
-    synchronized (this) {
-      labelClientCounter.setText("Client: " + _clientThreadList.size());
-      modelClient.setRowCount(0);
-      clientListTable();
-    }
-  }
-
-  public void updateFolderList() {
-    synchronized (this) {
-      modelFolder.setRowCount(0);
-      if (_selectedClient == null) return;
-      folderListTable(
-        ServerStateManage.getClientFolders(_selectedClient.getClientId())
-      );
-    }
+    TableColumnModel columnModel = table.getColumnModel();
+    columnModel.getColumn(0).setPreferredWidth(20);
+    columnModel.getColumn(1).setPreferredWidth(150);
+    columnModel.getColumn(2).setPreferredWidth(100);
+    columnModel.getColumn(3).setPreferredWidth(100);
+    columnModel.getColumn(4).setPreferredWidth(100);
+    // adding it to JScrollPane
+    JScrollPane sp = new JScrollPane(table);
+    sp.setBounds(145, 110, 1030, 320);
+    window.add(sp);
+    window.setVisible(true);
   }
 }

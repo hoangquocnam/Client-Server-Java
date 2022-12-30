@@ -1,11 +1,21 @@
 package Server;
 
+import java.util.ArrayList;
+
 public class ServerHelper {
 
   public enum LogType {
     INFO,
     ERROR,
     WARNING,
+  }
+
+  public enum Action {
+    CREATE,
+    DELETE,
+    RENAME,
+    MODIFY,
+    START,
   }
 
   public static int port = 3200;
@@ -46,12 +56,22 @@ public class ServerHelper {
     "Monitoring directory",
     "Action",
     "Name Client",
-    "Description",
   };
 
   public static boolean isValidName(String received) {
     boolean isFormatValid =
       received.indexOf('@') == -1 && received.indexOf('!') == -1;
     return isFormatValid;
+  }
+
+  static ArrayList<String> encodeMessage(String message) {
+    ArrayList<String> chunks = new ArrayList<String>();
+    String[] paths = message.split("\\$");
+    for (String p : paths) {
+      if (p.length() > 0) {
+        chunks.add(p);
+      }
+    }
+    return chunks;
   }
 }

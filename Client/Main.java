@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
-import javax.swing.*;
+import java.nio.file.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main implements Runnable {
 
@@ -69,23 +71,57 @@ public class Main implements Runnable {
         if (receivedMessage == null) {
           break;
         }
-        if (receivedMessage.equals("> :dir")) {
-          JFileChooser chooser = new JFileChooser();
-          chooser.setCurrentDirectory(new java.io.File("."));
+        if (receivedMessage.equals("> dir%")) {
+          // send the root directory
+          String currentUserHomeDirectory = System.getProperty("user.home");
+          // get folder list from the root directory
+          List<Path> filesInFolder = Files
+            .list(Paths.get(currentUserHomeDirectory))
+            .filter(Files::isDirectory)
+            .collect(Collectors.toList());
 
-          chooser.setDialogTitle("Select a directory");
-          chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-          chooser.setAcceptAllFileFilterUsed(false);
-          if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-            selectedDirectoryString = chooser.getSelectedFile().toString();
-            sendServer(selectedDirectoryString);
-          } else {
-            System.out.println("No Selection ");
+          String folderList = "dir%";
+          for (Path path : filesInFolder) {
+            folderList += path.getFileName() + "$";
           }
+          sendServer(folderList);
+        } else if (receivedMessage.indexOf("> got%") != -1) {
+          // get the selected directory
+          // remove > got%
+
+          selectedDirectoryString = receivedMessage.substring(6);
+          // watch the selected directory
+          watchDirectory(selectedDirectoryString);
         }
       }
     } catch (Exception e) {
       System.out.println("Error in receiving message");
+    }
+  }
+
+  // watch the selected directory
+  public static void watchDirectory(String folderPath) {
+    try {
+      WatchService watcher = FileSystems.getDefault().newWatchService();
+      // need to register the directory to watch, the folderPath need to plus with the root directory
+      String path = System.getProperty("user.home") + "/" + folderPath;
+      Path dir = Paths.get(path);
+      dir.register(
+        watcher,
+        StandardWatchEventKinds.ENTRY_CREATE,
+        StandardWatchEventKinds.ENTRY_DELETE,
+        StandardWatchEventKinds.ENTRY_MODIFY,
+        StandardWatchEventKinds.OVERFLOW
+      );
+      WatchKey key;
+      while ((key = watcher.take()) != null) {
+        for (WatchEvent<?> event : key.pollEvents()) {
+          sendServer("--f%" + event.kind() + "$" + event.context());
+        }
+        key.reset();
+      }
+    } catch (Exception e) {
+      System.out.println("Error in watching directory: " + e.getMessage());
     }
   }
 }

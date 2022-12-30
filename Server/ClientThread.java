@@ -3,6 +3,7 @@ package Server;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import javax.swing.JLabel;
 
 class ClientThread extends Thread {
 
@@ -12,14 +13,16 @@ class ClientThread extends Thread {
   static BufferedReader _br;
   BufferedWriter _bw;
 
-  boolean isLoggedIn = false;
+  boolean _isLoggedIn = false;
   String _name = null;
+  ArrayList<String> _foldersPath = new ArrayList<String>();
+  int _selectedPathIndex = -1;
   int _id;
 
   public ClientThread(Socket s, int id) {
     _clientSocket = s;
     this._id = id;
-    this.isLoggedIn = true;
+    this._isLoggedIn = true;
     try {
       _is = s.getInputStream();
       _os = s.getOutputStream();
@@ -31,6 +34,12 @@ class ClientThread extends Thread {
 
     while (true) {
       if (getNameFromClient()) {
+        break;
+      }
+    }
+
+    while (true) {
+      if (requestDirectory()) {
         break;
       }
     }
@@ -46,7 +55,22 @@ class ClientThread extends Thread {
     }
   }
 
-  public void handleReceivedMessage(String received) {}
+  public void handleReceivedMessage(String received) {
+    // separate the first 4 characters command and the message
+    String command = received.substring(0, 4);
+    String message = received.substring(4);
+    switch (command) {
+      case "dir%":
+        _foldersPath = ServerHelper.encodeMessage(message);
+        break;
+      case "--f%":
+        ArrayList<String> encodeString = ServerHelper.encodeMessage(message);
+        // get the kind changing
+        String kind = encodeString.get(0);
+        String fileName = encodeString.get(1);
+        break;
+    }
+  }
 
   public void run() {
     String received;
@@ -87,14 +111,6 @@ class ClientThread extends Thread {
     }
   }
 
-  public int getClientId() {
-    return _id;
-  }
-
-  public boolean getClientStatus() {
-    return this.isLoggedIn;
-  }
-
   boolean getNameFromClient() {
     try {
       send("Please enter your name :");
@@ -115,7 +131,14 @@ class ClientThread extends Thread {
   }
 
   boolean requestDirectory() {
-    send(":dir");
-    return true;
+    try {
+      send("dir%");
+      String received = _br.readLine();
+      handleReceivedMessage(received);
+      return true;
+    } catch (Exception e) {
+      ServerHelper.printError(e.getMessage());
+      return false;
+    }
   }
 }

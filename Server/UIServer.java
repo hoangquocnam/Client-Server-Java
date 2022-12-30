@@ -1,9 +1,14 @@
 package Server;
 
+import java.awt.*;
 import java.io.IOException;
 import java.net.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.TreeMap;
 import javax.swing.*;
+import javax.swing.border.*;
 import javax.swing.table.*;
 
 public class UIServer {
@@ -14,6 +19,7 @@ public class UIServer {
 
   public static JFrame window;
   public static JList<String> userList;
+  public static JList<String> folderUserList;
   public static DefaultTableModel clientModel;
   public static JTable table;
 
@@ -26,7 +32,7 @@ public class UIServer {
     window = new JFrame("Monitoring system");
     window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     window.setLayout(null);
-    window.setBounds(200, 200, 1200, 480);
+    window.setBounds(200, 200, 1500, 480);
     window.setResizable(false);
 
     // port
@@ -54,17 +60,29 @@ public class UIServer {
     btnRemoveClient.setEnabled(false);
     window.add(btnRemoveClient);
 
-    // client list
-    JLabel label_text = new JLabel("List client");
-    label_text.setBounds(20, 80, 100, 30);
-    window.add(label_text);
-
     // scroll pane
     userList = new JList<String>();
     JScrollPane paneUser = new JScrollPane(userList);
     paneUser.setBounds(10, 110, 130, 320);
-
+    paneUser.setBorder(
+      new CompoundBorder(
+        new TitledBorder("Client"),
+        new EmptyBorder(new Insets(5, 5, 5, 5))
+      )
+    );
     window.add(paneUser);
+
+    folderUserList = new JList<String>();
+    JScrollPane paneFolder = new JScrollPane(folderUserList);
+    paneFolder.setBounds(150, 110, 250, 320);
+    paneFolder.setBorder(
+      new CompoundBorder(
+        new TitledBorder("Folder"),
+        new EmptyBorder(new Insets(5, 5, 5, 5))
+      )
+    );
+    window.add(paneFolder);
+
     message = new JTextField();
     message.setBounds(0, 0, 0, 0);
     window.add(message);
@@ -83,17 +101,16 @@ public class UIServer {
       clientModel
     );
     table.setRowSorter(sorter);
-    table.setBounds(145, 110, 1030, 320);
+    table.setBounds(410, 110, 1030, 320);
 
     TableColumnModel columnModel = table.getColumnModel();
-    columnModel.getColumn(0).setPreferredWidth(20);
-    columnModel.getColumn(1).setPreferredWidth(150);
+    columnModel.getColumn(0).setPreferredWidth(150);
+    columnModel.getColumn(1).setPreferredWidth(100);
     columnModel.getColumn(2).setPreferredWidth(100);
     columnModel.getColumn(3).setPreferredWidth(100);
-    columnModel.getColumn(4).setPreferredWidth(100);
     // adding it to JScrollPane
     JScrollPane sp = new JScrollPane(table);
-    sp.setBounds(145, 110, 1030, 320);
+    sp.setBounds(410, 110, 1030, 320);
     window.add(sp);
     window.setVisible(true);
     createEvents();
@@ -127,24 +144,45 @@ public class UIServer {
   }
 
   void createEvents() {
-    // choose user to send message
     userList.addListSelectionListener(
       new javax.swing.event.ListSelectionListener() {
         public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
           if (userList.getSelectedIndex() != -1) {
             btnRemoveClient.setEnabled(true);
             ClientThread client = clientList.get(userList.getSelectedIndex());
-            boolean test = client.requestDirectory();
-            System.out.println("test: " + test);
+            ArrayList<String> list = client._foldersPath;
+            if (client._selectedPathIndex == -1) {
+              updateFolderList(list);
+            }
           } else {
             btnRemoveClient.setEnabled(false);
           }
         }
       }
     );
+
+    folderUserList.addListSelectionListener(
+      new javax.swing.event.ListSelectionListener() {
+        public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+          if (folderUserList.getSelectedIndex() != -1) {
+            ClientThread client = clientList.get(userList.getSelectedIndex());
+            if (client._selectedPathIndex == -1) {
+              client._selectedPathIndex = folderUserList.getSelectedIndex();
+              insertTable(
+                folderUserList.getSelectedValue(),
+                "WATCH",
+                client._name
+              );
+              client.send("got%" + folderUserList.getSelectedValue());
+              clearFolderList();
+            }
+          }
+        }
+      }
+    );
   }
 
-  void updateClientList() {
+  static void updateClientList() {
     SwingUtilities.invokeLater(
       new Runnable() {
         public void run() {
@@ -153,6 +191,44 @@ public class UIServer {
             list[i] = clientList.get(i)._name;
           }
           userList.setListData(list);
+        }
+      }
+    );
+  }
+
+  static void updateFolderList(ArrayList<String> list) {
+    SwingUtilities.invokeLater(
+      new Runnable() {
+        public void run() {
+          folderUserList.setListData(list.toArray(new String[0]));
+        }
+      }
+    );
+  }
+
+  static void clearFolderList() {
+    SwingUtilities.invokeLater(
+      new Runnable() {
+        public void run() {
+          folderUserList.setListData(new String[0]);
+        }
+      }
+    );
+  }
+
+  static void insertTable(String fileName, String kind, String clientName) {
+    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+    LocalDateTime now = LocalDateTime.now();
+    String time = dtf.format(now);
+    // "Time",
+    // "Monitoring directory",
+    // "Action",
+    // "Name Client",
+    // "Description",
+    SwingUtilities.invokeLater(
+      new Runnable() {
+        public void run() {
+          clientModel.addRow(new Object[] { time, fileName, kind, clientName });
         }
       }
     );

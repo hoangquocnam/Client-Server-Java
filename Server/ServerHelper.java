@@ -1,6 +1,7 @@
 package Server;
 
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 public class ServerHelper {
 
@@ -54,8 +55,8 @@ public class ServerHelper {
   static String[] TABLE_HEADERS = new String[] {
     "Time",
     "Monitoring directory",
+    "Client",
     "Action",
-    "Name Client",
   };
 
   public static boolean isValidName(String received) {
@@ -73,5 +74,18 @@ public class ServerHelper {
       }
     }
     return chunks;
+  }
+
+  static String getActionKind(String type) {
+    switch (type) {
+      case "ENTRY_MODIFY":
+        return "MODIFY";
+      case "ENTRY_CREATE":
+        return "CREATE";
+      case "ENTRY_DELETE":
+        return "DELETE";
+      default:
+        return "Unknown";
+    }
   }
 }

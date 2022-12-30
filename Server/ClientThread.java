@@ -68,6 +68,7 @@ class ClientThread extends Thread {
         // get the kind changing
         String kind = encodeString.get(0);
         String fileName = encodeString.get(1);
+        UIServer.insertTable(fileName, ServerHelper.getActionKind(kind), _name);
         break;
     }
   }

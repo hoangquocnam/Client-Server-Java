@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import javax.swing.*;
 
 public class Main implements Runnable {
 
@@ -8,8 +9,18 @@ public class Main implements Runnable {
   static OutputStream os;
   static BufferedReader br;
   static BufferedWriter bw;
+  static String selectedDirectoryString = "";
   private static BufferedReader inputLine = null;
-  private static boolean isClosed = false;
+
+  static void sendServer(String message) {
+    try {
+      bw.write(message);
+      bw.newLine();
+      bw.flush();
+    } catch (IOException e) {
+      System.out.println("Error in sending message");
+    }
+  }
 
   public static void main(String arg[]) {
     try {
@@ -34,9 +45,7 @@ public class Main implements Runnable {
         t.start();
         while (true) {
           sentMessage = inputLine.readLine();
-          bw.write(sentMessage);
-          bw.newLine();
-          bw.flush();
+          sendServer(sentMessage);
         }
       } catch (Exception e) {
         System.out.println("Error in sending message");
@@ -55,10 +64,24 @@ public class Main implements Runnable {
     String receivedMessage = "";
     try {
       while (true) {
-        receivedMessage = br.readLine();
+        receivedMessage = br.readLine().trim();
         System.out.println(receivedMessage);
         if (receivedMessage == null) {
           break;
+        }
+        if (receivedMessage.equals("> :dir")) {
+          JFileChooser chooser = new JFileChooser();
+          chooser.setCurrentDirectory(new java.io.File("."));
+
+          chooser.setDialogTitle("Select a directory");
+          chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+          chooser.setAcceptAllFileFilterUsed(false);
+          if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            selectedDirectoryString = chooser.getSelectedFile().toString();
+            sendServer(selectedDirectoryString);
+          } else {
+            System.out.println("No Selection ");
+          }
         }
       }
     } catch (Exception e) {

@@ -6,22 +6,19 @@ import java.util.*;
 
 class ClientThread extends Thread {
 
-  static Socket _clientSocket;
+  Socket _clientSocket;
   static InputStream _is;
   static OutputStream _os;
   static BufferedReader _br;
   BufferedWriter _bw;
 
-  public int _id;
-  public int _port;
-
   boolean isLoggedIn = false;
-  String name = null;
+  String _name = null;
+  int _id;
 
   public ClientThread(Socket s, int id) {
     _clientSocket = s;
     this._id = id;
-    _port = s.getPort();
     this.isLoggedIn = true;
     try {
       _is = s.getInputStream();
@@ -30,6 +27,12 @@ class ClientThread extends Thread {
       _bw = new BufferedWriter(new OutputStreamWriter(_os));
     } catch (IOException e) {
       e.printStackTrace();
+    }
+
+    while (true) {
+      if (getNameFromClient()) {
+        break;
+      }
     }
   }
 
@@ -48,12 +51,6 @@ class ClientThread extends Thread {
   public void run() {
     String received;
     try {
-      while (true) {
-        if (getNameFromClient()) {
-          break;
-        }
-      }
-
       while (true) {
         synchronized (this) {
           try {
@@ -94,10 +91,6 @@ class ClientThread extends Thread {
     return _id;
   }
 
-  public int getClientPort() {
-    return _port;
-  }
-
   public boolean getClientStatus() {
     return this.isLoggedIn;
   }
@@ -107,8 +100,8 @@ class ClientThread extends Thread {
       send("Please enter your name :");
       String received = _br.readLine();
       if (ServerHelper.isValidName(received)) {
-        name = "@" + received;
-        send("Welcome " + name + "!");
+        _name = received;
+        send("Welcome " + _name + "!");
         // _client.setName(name);
         return true;
       } else {
@@ -119,5 +112,10 @@ class ClientThread extends Thread {
       ServerHelper.printError(e.getMessage());
       return false;
     }
+  }
+
+  boolean requestDirectory() {
+    send(":dir");
+    return true;
   }
 }

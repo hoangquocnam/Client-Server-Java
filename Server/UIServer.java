@@ -217,6 +217,28 @@ public class UIServer {
         }
       }
     );
+
+    btnDisconnect.addActionListener(
+      new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+          for (int i = 0; i < clientList.size(); i++) {
+            ClientThread client = clientList.get(i);
+            if (client._selectedPathIndex != -1) {
+              insertTable(
+                client._foldersPath.get(client._selectedPathIndex),
+                "UNWATCH",
+                client._name
+              );
+            }
+            client.send("exit");
+          }
+          clientList.clear();
+          updateClientList();
+          updateFolderList(new ArrayList<String>());
+          System.exit(0);
+        }
+      }
+    );
   }
 
   static void updateClientList() {

@@ -1,14 +1,15 @@
 package Server;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.io.IOException;
 import java.net.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.TreeMap;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.*;
 import javax.swing.table.*;
 
 public class UIServer {
@@ -23,7 +24,7 @@ public class UIServer {
   public static DefaultTableModel clientModel;
   public static JTable table;
 
-  public JButton btnDisconnect, btnSearch, btnRemoveClient;
+  public JButton btnDisconnect, btnChangeFolder, btnRemoveClient;
   public JTextField message, jtf;
   public JLabel ipLabel;
   public JLabel portLabel;
@@ -54,11 +55,14 @@ public class UIServer {
     btnDisconnect.setBounds(150, 10, 100, 30);
     window.add(btnDisconnect);
 
-    // log button
+    // change folder button
     btnRemoveClient = new JButton("Remove client");
-    btnRemoveClient.setBounds(200, 70, 200, 30);
-    btnRemoveClient.setEnabled(false);
+    btnRemoveClient.setBounds(50, 70, 200, 30);
     window.add(btnRemoveClient);
+
+    btnChangeFolder = new JButton("Change folder");
+    btnChangeFolder.setBounds(250, 70, 200, 30);
+    window.add(btnChangeFolder);
 
     // scroll pane
     userList = new JList<String>();
@@ -148,21 +152,18 @@ public class UIServer {
       new javax.swing.event.ListSelectionListener() {
         public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
           if (userList.getSelectedIndex() != -1) {
-            btnRemoveClient.setEnabled(true);
             ClientThread client = clientList.get(userList.getSelectedIndex());
             ArrayList<String> list = client._foldersPath;
             if (client._selectedPathIndex == -1) {
               updateFolderList(list);
             }
-          } else {
-            btnRemoveClient.setEnabled(false);
           }
         }
       }
     );
 
     folderUserList.addListSelectionListener(
-      new javax.swing.event.ListSelectionListener() {
+      new ListSelectionListener() {
         public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
           if (folderUserList.getSelectedIndex() != -1) {
             ClientThread client = clientList.get(userList.getSelectedIndex());
@@ -177,6 +178,42 @@ public class UIServer {
               clearFolderList();
             }
           }
+        }
+      }
+    );
+
+    btnChangeFolder.addActionListener(
+      new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+          ClientThread client = clientList.get(userList.getSelectedIndex());
+          if (client._selectedPathIndex != -1) {
+            insertTable(
+              client._foldersPath.get(client._selectedPathIndex),
+              "UNWATCH",
+              client._name
+            );
+            client._selectedPathIndex = -1;
+            updateFolderList(client._foldersPath);
+          }
+        }
+      }
+    );
+
+    btnRemoveClient.addActionListener(
+      new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+          ClientThread client = clientList.get(userList.getSelectedIndex());
+          if (client._selectedPathIndex != -1) {
+            insertTable(
+              client._foldersPath.get(client._selectedPathIndex),
+              "UNWATCH",
+              client._name
+            );
+          }
+          client.send("exit");
+          clientList.remove(userList.getSelectedIndex());
+          updateClientList();
+          updateFolderList(new ArrayList<String>());
         }
       }
     );
@@ -220,11 +257,6 @@ public class UIServer {
     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
     LocalDateTime now = LocalDateTime.now();
     String time = dtf.format(now);
-    // "Time",
-    // "Monitoring directory",
-    // "Action",
-    // "Name Client",
-    // "Description",
     SwingUtilities.invokeLater(
       new Runnable() {
         public void run() {

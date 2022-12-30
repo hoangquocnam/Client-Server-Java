@@ -11,7 +11,6 @@ public class Main implements Runnable {
   static OutputStream os;
   static BufferedReader br;
   static BufferedWriter bw;
-  static String selectedDirectoryString = "";
   private static BufferedReader inputLine = null;
 
   static void sendServer(String message) {
@@ -62,14 +61,12 @@ public class Main implements Runnable {
   }
 
   public void run() {
-    // create a new thread to receive messages from the server
     String receivedMessage = "";
     try {
       while (true) {
         receivedMessage = br.readLine().trim();
-        System.out.println(receivedMessage);
-        if (receivedMessage == null) {
-          break;
+        if (receivedMessage.indexOf("%") == -1) {
+          System.out.println(receivedMessage);
         }
         if (receivedMessage.equals("> dir%")) {
           // send the root directory
@@ -86,12 +83,15 @@ public class Main implements Runnable {
           }
           sendServer(folderList);
         } else if (receivedMessage.indexOf("> got%") != -1) {
-          // get the selected directory
-          // remove > got%
-
-          selectedDirectoryString = receivedMessage.substring(6);
-          // watch the selected directory
+          String selectedDirectoryString = receivedMessage.substring(6);
           watchDirectory(selectedDirectoryString);
+        } else if (receivedMessage.indexOf("> remove%") != -1) {
+          String[] messageParts = receivedMessage.substring(6).split("\\$");
+          String eventKind = messageParts[0];
+          String fileName = messageParts[1];
+          System.out.println("File " + fileName + " has been " + eventKind);
+        } else if (receivedMessage.indexOf("> exit") != -1) {
+          System.exit(0);
         }
       }
     } catch (Exception e) {
@@ -99,11 +99,9 @@ public class Main implements Runnable {
     }
   }
 
-  // watch the selected directory
   public static void watchDirectory(String folderPath) {
     try {
       WatchService watcher = FileSystems.getDefault().newWatchService();
-      // need to register the directory to watch, the folderPath need to plus with the root directory
       String path = System.getProperty("user.home") + "/" + folderPath;
       Path dir = Paths.get(path);
       dir.register(

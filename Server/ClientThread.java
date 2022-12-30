@@ -3,7 +3,6 @@ package Server;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import javax.swing.JLabel;
 
 class ClientThread extends Thread {
 
@@ -141,5 +140,9 @@ class ClientThread extends Thread {
       ServerHelper.printError(e.getMessage());
       return false;
     }
+  }
+
+  void setSelectedPathIndex(int index) {
+    _selectedPathIndex = index;
   }
 }

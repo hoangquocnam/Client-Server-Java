@@ -45,7 +45,7 @@ class ClientThread extends Thread {
   }
 
   public void send(String message) {
-    try { 
+    try {
       _bw.write("> " + message);
       _bw.newLine();
       _bw.flush();
@@ -67,6 +67,10 @@ class ClientThread extends Thread {
         String kind = encodeString.get(0);
         String fileName = encodeString.get(1);
         UIServer.insertTable(fileName, ServerHelper.getActionKind(kind), _name);
+        break;
+      case "ext%":
+        UIServer.removeClient(this);
+        close();
         break;
     }
   }
@@ -96,18 +100,16 @@ class ClientThread extends Thread {
         ServerHelper.printError(e.getMessage());
       }
     } catch (Exception e) {
-      ServerHelper.printError("nam");
+      ServerHelper.printError(
+        "Error in receiving message from client " + _name
+      );
       e.printStackTrace();
     }
   }
 
   void close() {
-    send(":exit");
-    try {
-      _clientSocket.close();
-    } catch (IOException e) {
-      ServerHelper.printError(e.getMessage());
-    }
+    send("ext%");
+    ServerHelper.printInfo("Client " + _name + " has been disconnected.");
   }
 
   boolean getNameFromClient() {

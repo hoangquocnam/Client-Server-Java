@@ -158,6 +158,8 @@ public class UIServer {
             ArrayList<String> list = client._foldersPath;
             if (client._selectedPathIndex == -1) {
               updateFolderList(list);
+            } else {
+              updateFolderList(new ArrayList<String>());
             }
           }
         }
@@ -187,16 +189,22 @@ public class UIServer {
     btnChangeFolder.addActionListener(
       new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-          ClientThread client = clientList.get(userList.getSelectedIndex());
-          client.send("rmv%");
-          if (client._selectedPathIndex != -1) {
-            insertTable(
-              client._foldersPath.get(client._selectedPathIndex),
-              "STOP",
-              client._name
-            );
-            client._selectedPathIndex = -1;
-            updateFolderList(client._foldersPath);
+          try {
+            if (userList.getSelectedIndex() != -1) {
+              ClientThread client = clientList.get(userList.getSelectedIndex());
+              if (client._selectedPathIndex != -1) {
+                insertTable(
+                  client._foldersPath.get(client._selectedPathIndex),
+                  "STOP",
+                  client._name
+                );
+                client._selectedPathIndex = -1;
+                updateFolderList(client._foldersPath);
+              }
+              client.send("rmv%");
+            }
+          } catch (Exception ex) {
+            ServerHelper.printError(ex.getMessage());
           }
         }
       }
@@ -205,19 +213,23 @@ public class UIServer {
     btnRemoveClient.addActionListener(
       new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-          ClientThread client = clientList.get(userList.getSelectedIndex());
-          client.send("ext%");
-          System.out.println(client._name);
-          if (client._selectedPathIndex != -1) {
-            insertTable(
-              client._foldersPath.get(client._selectedPathIndex),
-              "STOP",
-              client._name
-            );
+          try {
+            if (userList.getSelectedIndex() == -1) return;
+            ClientThread client = clientList.get(userList.getSelectedIndex());
+            if (client._selectedPathIndex != -1) {
+              insertTable(
+                client._foldersPath.get(client._selectedPathIndex),
+                "STOP",
+                client._name
+              );
+            }
+            client.close();
+            clientList.remove(userList.getSelectedIndex());
+            updateClientList();
+            updateFolderList(new ArrayList<String>());
+          } catch (Exception ex) {
+            ServerHelper.printError(ex.getMessage());
           }
-          clientList.remove(userList.getSelectedIndex());
-          updateClientList();
-          updateFolderList(new ArrayList<String>());
         }
       }
     );
@@ -227,7 +239,7 @@ public class UIServer {
         public void actionPerformed(ActionEvent e) {
           for (int i = 0; i < clientList.size(); i++) {
             ClientThread client = clientList.get(i);
-            client.send("ext%");
+            client.close();
             if (client._selectedPathIndex != -1) {
               insertTable(
                 client._foldersPath.get(client._selectedPathIndex),
@@ -287,6 +299,17 @@ public class UIServer {
       new Runnable() {
         public void run() {
           clientModel.addRow(new Object[] { time, fileName, kind, clientName });
+        }
+      }
+    );
+  }
+
+  static void removeClient(ClientThread client) {
+    SwingUtilities.invokeLater(
+      new Runnable() {
+        public void run() {
+          clientList.remove(client);
+          updateClientList();
         }
       }
     );

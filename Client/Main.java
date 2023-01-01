@@ -32,6 +32,9 @@ public class Main implements Runnable {
           "No Server found. Please ensure that the Server program is running and try again."
         );
       }
+      if (clientSocket == null) {
+        return;
+      }
       is = clientSocket.getInputStream();
       os = clientSocket.getOutputStream();
       br = new BufferedReader(new InputStreamReader(is));
@@ -41,12 +44,15 @@ public class Main implements Runnable {
       String sentMessage = "";
 
       try {
-        // create a new thread to receive messages from the server
         Thread t = new Thread(new Main());
         t.start();
         while (true) {
           sentMessage = inputLine.readLine();
-          sendServer(sentMessage);
+          if (sentMessage.equals("exit") || sentMessage.equals("quit")) {
+            sendServer("ext%");
+          } else {
+            sendServer(sentMessage);
+          }
         }
       } catch (Exception e) {
         System.out.println("Error in sending message");
@@ -75,7 +81,9 @@ public class Main implements Runnable {
       WatchKey key;
       while ((key = watcher.take()) != null) {
         for (WatchEvent<?> event : key.pollEvents()) {
-          sendServer("--f%" + event.kind() + "$" + event.context());
+          sendServer(
+            "--f%" + event.kind() + "$" + folderPath + "/" + event.context()
+          );
         }
         key.reset();
       }
@@ -118,16 +126,18 @@ public class Main implements Runnable {
   }
 
   void handleReceivedMessage(String message) {
-    System.out.println(message);
-
-    if (message.indexOf("dir%") != -1) {
-      handleSendingAllPaths();
-    } else if (message.indexOf("got%") != -1) {
-      handleSelectedPath(message);
-    } else if (message.indexOf("rmv%") != -1) {
-      handleRemovePath();
-    } else if (message.indexOf("ext%") != -1) {
-      handleReceiveExit();
+    if (message.indexOf("%") == -1) {
+      System.out.println(message);
+    } else {
+      if (message.indexOf("dir%") != -1) {
+        handleSendingAllPaths();
+      } else if (message.indexOf("got%") != -1) {
+        handleSelectedPath(message);
+      } else if (message.indexOf("rmv%") != -1) {
+        handleRemovePath();
+      } else if (message.indexOf("ext%") != -1) {
+        handleReceiveExit();
+      }
     }
   }
 

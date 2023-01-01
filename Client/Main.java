@@ -60,45 +60,6 @@ public class Main implements Runnable {
     }
   }
 
-  public void run() {
-    String receivedMessage = "";
-    try {
-      while (true) {
-        receivedMessage = br.readLine().trim();
-        if (receivedMessage.indexOf("%") == -1) {
-          System.out.println(receivedMessage);
-        }
-        if (receivedMessage.equals("> dir%")) {
-          // send the root directory
-          String currentUserHomeDirectory = System.getProperty("user.home");
-          // get folder list from the root directory
-          List<Path> filesInFolder = Files
-            .list(Paths.get(currentUserHomeDirectory))
-            .filter(Files::isDirectory)
-            .collect(Collectors.toList());
-
-          String folderList = "dir%";
-          for (Path path : filesInFolder) {
-            folderList += path.getFileName() + "$";
-          }
-          sendServer(folderList);
-        } else if (receivedMessage.indexOf("> got%") != -1) {
-          String selectedDirectoryString = receivedMessage.substring(6);
-          watchDirectory(selectedDirectoryString);
-        } else if (receivedMessage.indexOf("> remove%") != -1) {
-          String[] messageParts = receivedMessage.substring(6).split("\\$");
-          String eventKind = messageParts[0];
-          String fileName = messageParts[1];
-          System.out.println("File " + fileName + " has been " + eventKind);
-        } else if (receivedMessage.indexOf("> exit") != -1) {
-          System.exit(0);
-        }
-      }
-    } catch (Exception e) {
-      System.out.println("Error in receiving message");
-    }
-  }
-
   public static void watchDirectory(String folderPath) {
     try {
       WatchService watcher = FileSystems.getDefault().newWatchService();
@@ -120,6 +81,67 @@ public class Main implements Runnable {
       }
     } catch (Exception e) {
       System.out.println("Error in watching directory: " + e.getMessage());
+    }
+  }
+
+  void handleSendingAllPaths() {
+    try {
+      String currentUserHomeDirectory = System.getProperty("user.home");
+      List<Path> filesInFolder = Files
+        .list(Paths.get(currentUserHomeDirectory))
+        .filter(Files::isDirectory)
+        .collect(Collectors.toList());
+
+      String folderList = "dir%";
+      for (Path path : filesInFolder) {
+        folderList += path.getFileName() + "$";
+      }
+      sendServer(folderList);
+    } catch (Exception e) {
+      System.out.println("Error in sending directory list");
+    }
+  }
+
+  void handleSelectedPath(String mess) {
+    String selectedDirectoryString = mess.substring(4);
+    System.out.println("Watching " + selectedDirectoryString);
+    watchDirectory(selectedDirectoryString);
+  }
+
+  void handleReceiveExit() {
+    System.out.println("Closing client");
+    System.exit(0);
+  }
+
+  void handleRemovePath() {
+    System.out.println("Stop watching");
+  }
+
+  void handleReceivedMessage(String message) {
+    System.out.println(message);
+
+    if (message.indexOf("dir%") != -1) {
+      handleSendingAllPaths();
+    } else if (message.indexOf("got%") != -1) {
+      handleSelectedPath(message);
+    } else if (message.indexOf("rmv%") != -1) {
+      handleRemovePath();
+    } else if (message.indexOf("ext%") != -1) {
+      handleReceiveExit();
+    }
+  }
+
+  public void run() {
+    String receivedMessage = "";
+    try {
+      while (true) {
+        receivedMessage = br.readLine().trim();
+        // remove > from the message
+        String message = receivedMessage.substring(2);
+        handleReceivedMessage(message);
+      }
+    } catch (Exception e) {
+      System.out.println("Error in receiving message");
     }
   }
 }

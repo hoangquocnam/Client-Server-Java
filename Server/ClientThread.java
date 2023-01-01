@@ -7,9 +7,9 @@ import java.util.*;
 class ClientThread extends Thread {
 
   Socket _clientSocket;
-  static InputStream _is;
-  static OutputStream _os;
-  static BufferedReader _br;
+  InputStream _is;
+  OutputStream _os;
+  BufferedReader _br;
   BufferedWriter _bw;
 
   boolean _isLoggedIn = false;
@@ -45,17 +45,16 @@ class ClientThread extends Thread {
   }
 
   public void send(String message) {
-    try {
+    try { 
       _bw.write("> " + message);
       _bw.newLine();
       _bw.flush();
     } catch (IOException e) {
-      ServerHelper.printError("Error in sending message to client" + _id);
+      ServerHelper.printError("Error in sending message to client " + _name);
     }
   }
 
   public void handleReceivedMessage(String received) {
-    // separate the first 4 characters command and the message
     String command = received.substring(0, 4);
     String message = received.substring(4);
     switch (command) {

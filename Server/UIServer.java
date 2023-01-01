@@ -57,11 +57,11 @@ public class UIServer {
 
     // change folder button
     btnRemoveClient = new JButton("Remove client");
-    btnRemoveClient.setBounds(50, 70, 200, 30);
+    btnRemoveClient.setBounds(20, 70, 200, 30);
     window.add(btnRemoveClient);
 
     btnChangeFolder = new JButton("Change folder");
-    btnChangeFolder.setBounds(250, 70, 200, 30);
+    btnChangeFolder.setBounds(220, 70, 200, 30);
     window.add(btnChangeFolder);
 
     // scroll pane
@@ -112,6 +112,8 @@ public class UIServer {
     columnModel.getColumn(1).setPreferredWidth(100);
     columnModel.getColumn(2).setPreferredWidth(100);
     columnModel.getColumn(3).setPreferredWidth(100);
+
+    table.setEnabled(false);
     // adding it to JScrollPane
     JScrollPane sp = new JScrollPane(table);
     sp.setBounds(410, 110, 1030, 320);
@@ -186,10 +188,11 @@ public class UIServer {
       new ActionListener() {
         public void actionPerformed(ActionEvent e) {
           ClientThread client = clientList.get(userList.getSelectedIndex());
+          client.send("rmv%");
           if (client._selectedPathIndex != -1) {
             insertTable(
               client._foldersPath.get(client._selectedPathIndex),
-              "UNWATCH",
+              "STOP",
               client._name
             );
             client._selectedPathIndex = -1;
@@ -203,14 +206,15 @@ public class UIServer {
       new ActionListener() {
         public void actionPerformed(ActionEvent e) {
           ClientThread client = clientList.get(userList.getSelectedIndex());
+          client.send("ext%");
+          System.out.println(client._name);
           if (client._selectedPathIndex != -1) {
             insertTable(
               client._foldersPath.get(client._selectedPathIndex),
-              "UNWATCH",
+              "STOP",
               client._name
             );
           }
-          client.send("exit");
           clientList.remove(userList.getSelectedIndex());
           updateClientList();
           updateFolderList(new ArrayList<String>());
@@ -223,14 +227,14 @@ public class UIServer {
         public void actionPerformed(ActionEvent e) {
           for (int i = 0; i < clientList.size(); i++) {
             ClientThread client = clientList.get(i);
+            client.send("ext%");
             if (client._selectedPathIndex != -1) {
               insertTable(
                 client._foldersPath.get(client._selectedPathIndex),
-                "UNWATCH",
+                "STOP",
                 client._name
               );
             }
-            client.send("exit");
           }
           clientList.clear();
           updateClientList();

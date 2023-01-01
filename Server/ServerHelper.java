@@ -54,8 +54,8 @@ public class ServerHelper {
   static String[] TABLE_HEADERS = new String[] {
     "Time",
     "Monitoring directory",
-    "Client",
     "Action",
+    "Client",
   };
 
   public static boolean isValidName(String received) {
